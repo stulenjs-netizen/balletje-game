@@ -2,10 +2,44 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=balletje-game.html">
-<title>Balletje in de Cup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mikspelletjes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    background: linear-gradient(180deg, #87ceeb, #d8f0fa);
+    padding: 16px;
+  }
+  h1 { color: #1a4a6b; }
+  a.spel {
+    display: block;
+    width: min(420px, 100%);
+    padding: 20px 28px;
+    border-radius: 16px;
+    text-decoration: none;
+    color: #fff;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+    transition: transform 0.1s;
+  }
+  a.spel:hover { transform: scale(1.03); }
+  a.spel small { display: block; font-size: 15px; font-weight: normal; margin-top: 6px; opacity: 0.9; }
+  .cup { background: linear-gradient(180deg, #3498db, #1c5f8f); }
+  .basket { background: linear-gradient(180deg, #e8641b, #b94a10); }
+</style>
 </head>
 <body>
-<p>Even geduld... <a href="balletje-game.html">Klik hier als het spel niet vanzelf opent.</a></p>
+  <h1>🎯 Kies je spel</h1>
+  <a class="spel cup" href="balletje-game.html">🔴 Balletje in de Cup<small>Mik het balletje in de blauwe cup</small></a>
+  <a class="spel basket" href="basketbal-game.html">🏀 Basketbal in het Net<small>Gooi de basketbal door de ring</small></a>
 </body>
 </html>

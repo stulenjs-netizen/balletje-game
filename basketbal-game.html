@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Basketbal in het Net</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #game {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    cursor: pointer;
+    /* Gymzaal: muur */
+    background:
+      linear-gradient(180deg, #d9c9a3 0%, #cdb98d 60%, #c2ad7f 100%);
+  }
+
+  /* Houten vloer onderin */
+  #game::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 24%;
+    background:
+      repeating-linear-gradient(90deg,
+        rgba(0,0,0,0.07) 0 2px, transparent 2px 90px),
+      repeating-linear-gradient(180deg,
+        #b97f3c 0 18px, #ad7435 18px 36px);
+    border-top: 6px solid #8a5a26;
+    z-index: 0;
+  }
+
+  /* Sportlijnen op de muur */
+  #game::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 24%;
+    height: 14px;
+    background: linear-gradient(180deg, #2e6da4 0 6px, transparent 6px 8px, #c0392b 8px 14px);
+    opacity: 0.6;
+    z-index: 0;
+  }
+
+  #hud {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  #level {
+    font-size: 22px;
+    font-weight: bold;
+    color: #5a3410;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+  }
+
+  #uitleg {
+    font-size: 14px;
+    color: #6b4a22;
+    margin-top: 4px;
+  }
+
+  /* De bewegende basketbal bovenin */
+  #drager {
+    position: absolute;
+    top: 70px;
+    width: 44px;
+    height: 44px;
+    z-index: 5;
+  }
+
+  .basketbal {
+    width: 100%;
+    height: 100%;
+    display: block;
+    filter: drop-shadow(0 3px 4px rgba(0,0,0,0.35));
+  }
+
+  /* De vallende basketbal: vóór het bord, achter ring en net */
+  #bal {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    z-index: 4;
+  }
+
+  /* Basket: bord, ring en net.
+     Geen transform/z-index op de container, zodat de bal
+     tussen het bord (3) en het net (6) in kan vallen. */
+  #basket {
+    position: absolute;
+    bottom: 18px;
+    left: calc(50% - 75px);
+    width: 150px;
+    height: 150px;
+    pointer-events: none;
+  }
+
+  #bord {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    width: 150px;
+    height: 100px;
+    background: linear-gradient(180deg, #f4f4f4, #dcdcdc);
+    border: 4px solid #999;
+    border-radius: 4px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  }
+
+  #bord .vak {
+    position: absolute;
+    left: 50%;
+    bottom: 8px;
+    transform: translateX(-50%);
+    width: 56px;
+    height: 44px;
+    border: 4px solid #e8641b;
+    border-radius: 2px;
+  }
+
+  #ring {
+    position: absolute;
+    top: 96px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 6;
+    width: 110px;
+    height: 12px;
+    background: linear-gradient(180deg, #ff7f27, #d85f10);
+    border: 2px solid #a94a0c;
+    border-radius: 7px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+  }
+
+  #net {
+    position: absolute;
+    top: 108px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 6;
+    width: 110px;
+    height: 56px;
+  }
+
+  #bericht {
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 42px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 3px 8px rgba(0,0,0,0.4);
+    background: rgba(90, 52, 16, 0.88);
+    padding: 24px 48px;
+    border-radius: 16px;
+    display: none;
+    z-index: 20;
+    text-align: center;
+  }
+
+  #bericht small {
+    display: block;
+    font-size: 18px;
+    margin-top: 10px;
+    font-weight: normal;
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="hud">
+    <div id="level">Level 1</div>
+    <div id="uitleg">Klik op het juiste moment en gooi de basketbal in het net!</div>
+  </div>
+
+  <!-- Bewegende basketbal bovenin -->
+  <div id="drager">
+    <svg class="basketbal" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="balglans1" cx="35%" cy="30%" r="80%">
+          <stop offset="0%" stop-color="#ff9b4a"/>
+          <stop offset="60%" stop-color="#e8641b"/>
+          <stop offset="100%" stop-color="#b94a10"/>
+        </radialGradient>
+      </defs>
+      <circle cx="50" cy="50" r="48" fill="url(#balglans1)" stroke="#7a3208" stroke-width="3"/>
+      <path d="M2 50 H98" stroke="#7a3208" stroke-width="3" fill="none"/>
+      <path d="M50 2 V98" stroke="#7a3208" stroke-width="3" fill="none"/>
+      <path d="M15 15 Q50 50 15 85" stroke="#7a3208" stroke-width="3" fill="none"/>
+      <path d="M85 15 Q50 50 85 85" stroke="#7a3208" stroke-width="3" fill="none"/>
+    </svg>
+  </div>
+
+  <!-- Vallende basketbal -->
+  <div id="bal">
+    <svg class="basketbal" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="balglans2" cx="35%" cy="30%" r="80%">
+          <stop offset="0%" stop-color="#ff9b4a"/>
+          <stop offset="60%" stop-color="#e8641b"/>
+          <stop offset="100%" stop-color="#b94a10"/>
+        </radialGradient>
+      </defs>
+      <circle cx="50" cy="50" r="48" fill="url(#balglans2)" stroke="#7a3208" stroke-width="3"/>
+      <path d="M2 50 H98" stroke="#7a3208" stroke-width="3" fill="none"/>
+      <path d="M50 2 V98" stroke="#7a3208" stroke-width="3" fill="none"/>
+      <path d="M15 15 Q50 50 15 85" stroke="#7a3208" stroke-width="3" fill="none"/>
+      <path d="M85 15 Q50 50 85 85" stroke="#7a3208" stroke-width="3" fill="none"/>
+    </svg>
+  </div>
+
+  <!-- Basket met bord, ring en net -->
+  <div id="basket">
+    <div id="bord"><div class="vak"></div></div>
+    <div id="ring"></div>
+    <svg id="net" viewBox="0 0 110 56" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#f5f5f5" stroke-width="2.5" fill="none" opacity="0.95">
+        <path d="M8 0 L30 28 L20 56"/>
+        <path d="M30 0 L50 28 L40 56"/>
+        <path d="M55 0 L70 28 L58 56"/>
+        <path d="M80 0 L88 28 L74 56"/>
+        <path d="M102 0 L80 28 L90 56"/>
+        <path d="M80 0 L60 28 L70 56"/>
+        <path d="M55 0 L40 28 L52 56"/>
+        <path d="M30 0 L22 28 L36 56"/>
+        <path d="M8 0 L14 28 L20 56"/>
+        <path d="M20 56 Q55 64 90 56"/>
+      </g>
+    </svg>
+  </div>
+
+  <div id="bericht"></div>
+</div>
+
+<script>
+(function () {
+  const game = document.getElementById('game');
+  const dragerEl = document.getElementById('drager');
+  const balEl = document.getElementById('bal');
+  const ringEl = document.getElementById('ring');
+  const levelEl = document.getElementById('level');
+  const berichtEl = document.getElementById('bericht');
+
+  const BAL_SIZE = 44;
+
+  let level = 1;
+  let dragerX = 0;
+  let richting = 1;
+  let snelheid = 3;            // wordt hoger per level
+  let balVallend = false;
+  let scoren = false;          // bal is door de ring en zakt in het net
+  let balX = 0, balY = 0, balVy = 0, balVx = 0;
+  let wachtOpVolgendeRonde = false;
+
+  // --- Geluid (Web Audio) ---
+  let audioCtx = null;
+  function zorgAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function speelToon(freq, startNa, duur, type, volume) {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime + startNa;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(volume, t + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + duur);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + duur + 0.05);
+  }
+
+  // Vrolijk "ding-ding!" bij een score
+  function geluidRaak() {
+    speelToon(523.25, 0,    0.15, 'sine', 0.25); // C5
+    speelToon(659.25, 0.10, 0.15, 'sine', 0.25); // E5
+    speelToon(783.99, 0.20, 0.30, 'sine', 0.25); // G5
+  }
+
+  // Kort "tok" bij een stuiter op de ring
+  function geluidStuiter() {
+    speelToon(320, 0, 0.07, 'triangle', 0.2);
+  }
+
+  function breedte() { return game.clientWidth; }
+  function hoogte() { return game.clientHeight; }
+
+  function resetBal() {
+    balVallend = false;
+    balEl.style.display = 'none';
+    dragerEl.style.display = 'block';
+  }
+
+  function toonBericht(tekst, sub, kleur) {
+    berichtEl.innerHTML = tekst + (sub ? '<small>' + sub + '</small>' : '');
+    berichtEl.style.background = kleur;
+    berichtEl.style.display = 'block';
+  }
+
+  function verbergBericht() {
+    berichtEl.style.display = 'none';
+  }
+
+  function startLevel() {
+    verbergBericht();
+    levelEl.textContent = 'Level ' + level;
+    snelheid = 3 + (level - 1) * 1.5;
+    dragerX = 10;
+    richting = 1;
+    wachtOpVolgendeRonde = false;
+    resetBal();
+  }
+
+  function laatVallen() {
+    if (balVallend || wachtOpVolgendeRonde) return;
+    balVallend = true;
+    scoren = false;
+    balX = dragerX;
+    balY = 70;
+    balVy = 0;
+    balVx = 0;
+    dragerEl.style.display = 'none';
+    balEl.style.display = 'block';
+  }
+
+  // Stuiter op de ring: omhoog en opzij
+  function stuiter(vx, ringTop) {
+    balY = ringTop - BAL_SIZE;
+    balVy = -Math.max(balVy * 0.45, 4);
+    balVx = vx;
+    geluidStuiter();
+  }
+
+  function raak() {
+    wachtOpVolgendeRonde = true;
+    balVallend = false;
+    scoren = false;
+    balEl.style.display = 'none';
+    geluidRaak();
+    toonBericht('🏀 Level ' + level + ' gehaald!', 'Klik voor level ' + (level + 1), 'rgba(39, 174, 96, 0.9)');
+  }
+
+  function mis() {
+    wachtOpVolgendeRonde = true;
+    balVallend = false;
+    balEl.style.display = 'none';
+    toonBericht('😞 Mis!', 'Klik om het opnieuw te proberen', 'rgba(192, 57, 43, 0.9)');
+  }
+
+  game.addEventListener('pointerdown', function () {
+    zorgAudio();
+    if (wachtOpVolgendeRonde) {
+      if (berichtEl.textContent.indexOf('gehaald') !== -1) level++;
+      startLevel();
+      return;
+    }
+    laatVallen();
+  });
+
+  let vorigeTijd = null;
+
+  function update(tijd) {
+    // Delta-tijd zodat het spel op elke schermfrequentie even snel loopt
+    if (vorigeTijd === null) vorigeTijd = tijd;
+    const dt = Math.min((tijd - vorigeTijd) / (1000 / 60), 3); // in "60fps-frames", max 3
+    vorigeTijd = tijd;
+
+    // De basketbal bovenin beweegt heen en weer
+    if (!wachtOpVolgendeRonde && !balVallend) {
+      dragerX += snelheid * richting * dt;
+      if (dragerX <= 0) { dragerX = 0; richting = 1; }
+      if (dragerX >= breedte() - BAL_SIZE) { dragerX = breedte() - BAL_SIZE; richting = -1; }
+      dragerEl.style.left = dragerX + 'px';
+    }
+
+    if (balVallend) {
+      const vorigeBalOnder = balY + BAL_SIZE;
+      balVy += 0.45 * dt;      // zwaartekracht
+      balY += balVy * dt;
+      balX += balVx * dt;
+
+      balEl.style.left = balX + 'px';
+      balEl.style.top = balY + 'px';
+      balEl.style.transform = 'rotate(' + (balY * 1.5) + 'deg)';
+
+      // Positie van de ring-opening
+      const ringRect = ringEl.getBoundingClientRect();
+      const gameRect = game.getBoundingClientRect();
+      const ringTop = ringRect.top - gameRect.top;
+      const ringLinks = ringRect.left - gameRect.left;
+      const ringRechts = ringLinks + ringRect.width;
+
+      const balMidden = balX + BAL_SIZE / 2;
+      const balOnder = balY + BAL_SIZE;
+
+      const RAND = 18; // breedte van de randzone waar de bal op kan stuiteren
+
+      // Bal passeert vallend de ring (ook bij hoge snelheid)
+      if (!scoren && balVy > 0 && vorigeBalOnder < ringTop + 15 && balOnder >= ringTop) {
+        if (balMidden > ringLinks + RAND && balMidden < ringRechts - RAND) {
+          // Midden door de ring: de bal zakt in het net
+          scoren = true;
+          balVx = (ringLinks + ringRect.width / 2 - balMidden) / 12; // ietsje naar het midden
+          balVy = Math.min(balVy, 4);
+        } else if (balMidden >= ringLinks - 6 && balMidden <= ringLinks + RAND) {
+          // Linkerkant van de ring: binnenkant stuitert erin, buitenkant ernaast
+          const binnenkant = balMidden > ringLinks + RAND / 2;
+          stuiter(binnenkant ? 2.2 : -3, ringTop);
+        } else if (balMidden >= ringRechts - RAND && balMidden <= ringRechts + 6) {
+          // Rechterkant van de ring
+          const binnenkant = balMidden < ringRechts - RAND / 2;
+          stuiter(binnenkant ? -2.2 : 3, ringTop);
+        }
+      }
+
+      // Bal zit onderin het net: score!
+      if (scoren && balOnder >= ringTop + 52) {
+        raak();
+      }
+
+      // Bal valt onder het scherm: mis
+      if (balVallend && !scoren && balY > hoogte()) {
+        mis();
+      }
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  startLevel();
+  update();
+})();
+</script>
+</body>
+</html>
